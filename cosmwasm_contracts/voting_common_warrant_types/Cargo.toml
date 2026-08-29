@@ -1,0 +1,18 @@
+[package]
+name = "voting-common"
+version = "0.1.0"
+edition = "2021"
+description = "Common types and utilities for HETE Voting Demo contracts"
+
+[dependencies]
+cosmwasm-std = { workspace = true }
+cosmwasm-schema = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+hete-core = { path = "../../../hete_core/rust_core" }
+serde_json = "1.0"
+
+

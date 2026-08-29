@@ -1,0 +1,16 @@
+[package]
+name = "adapter-sqlite-asset"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hete-adapter-api = { path = "../hete-adapter-api" }
+hete-identity = { path = "../hete-identity" }
+hete-policy = { path = "../hete-policy" }
+hex.workspace = true
+poa-protocol = { path = "../poa-protocol" }
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true

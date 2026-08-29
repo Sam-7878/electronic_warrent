@@ -1,0 +1,3 @@
+{"warrant_state":"Draft","credentials_verified":false,"authorized":false,"domain_valid":true,"nonce_used":false,"activation_count":0,"reserved":0,"executed":0,"released":0,"now":0,"adapter_committed":false,"audit_written":false,"last_action":"Init"}
+{"warrant_state":"Submitted","credentials_verified":false,"authorized":false,"domain_valid":true,"nonce_used":false,"activation_count":0,"reserved":0,"executed":0,"released":0,"now":0,"adapter_committed":false,"audit_written":false,"last_action":"Submit"}
+{"warrant_state":"Rejected","credentials_verified":false,"authorized":false,"domain_valid":true,"nonce_used":false,"activation_count":0,"reserved":0,"executed":0,"released":0,"now":0,"adapter_committed":false,"audit_written":true,"last_action":"RejectUnauthorized"}

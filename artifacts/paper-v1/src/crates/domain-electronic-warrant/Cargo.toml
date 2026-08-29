@@ -1,0 +1,23 @@
+[package]
+name = "domain-electronic-warrant"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hete-adapter-api = { path = "../hete-adapter-api" }
+hete-credential = { path = "../hete-credential" }
+hete-identity = { path = "../hete-identity" }
+hete-policy = { path = "../hete-policy" }
+hex.workspace = true
+poa-core = { path = "../poa-core" }
+poa-protocol = { path = "../poa-protocol" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+adapter-simulated-asset = { path = "../adapter-simulated-asset" }
+proptest = "1"
+

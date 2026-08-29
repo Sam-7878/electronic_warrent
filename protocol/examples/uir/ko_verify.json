@@ -1,0 +1,6 @@
+{
+  "command": "기업 ACME 지표 revenue 2025년을 검증",
+  "language": "ko",
+  "expected_intent": "VERIFY",
+  "expected_entity": "ACME"
+}

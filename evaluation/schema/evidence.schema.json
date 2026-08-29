@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id","test_id","timestamp","platform","git_commit","protocol_id","policy_digest","expected_outcome","observed_outcome","startup_succeeded","listener_opened","domain_state_changed","os_enforcement","duration_us","status"],
+  "properties": {
+    "run_id":{"type":"string","minLength":1}, "test_id":{"type":"string","pattern":"^[A-Z0-9]+-[0-9]{3}$"},
+    "timestamp":{"type":"string","minLength":1}, "platform":{"type":"string","minLength":1}, "git_commit":{"type":"string","minLength":1},
+    "protocol_id":{"type":"string","minLength":1}, "policy_digest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "expected_outcome":{"type":"string","minLength":1}, "observed_outcome":{"type":"string","minLength":1},
+    "startup_succeeded":{"type":"boolean"}, "listener_opened":{"type":"boolean"}, "domain_state_changed":{"type":"boolean"},
+    "os_enforcement":{"type":"string","minLength":1}, "duration_us":{"type":"integer","minimum":0},
+    "status":{"enum":["passed","failed","not_evaluated"]}
+  }
+}
+

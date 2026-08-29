@@ -1,0 +1,17 @@
+{
+  "covered_properties": [
+    "SAFE-001",
+    "SAFE-002",
+    "SAFE-003",
+    "SAFE-004",
+    "SAFE-005",
+    "SAFE-006",
+    "SAFE-007",
+    "SAFE-008",
+    "SAFE-009"
+  ],
+  "mutation_cases_rejected": 6,
+  "state_count": 65,
+  "status": "passed",
+  "trace_count": 11
+}

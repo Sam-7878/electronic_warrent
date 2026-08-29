@@ -1,0 +1,11 @@
+[package]
+name = "hete-identity"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ed25519-dalek.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+

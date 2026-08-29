@@ -1,0 +1,62 @@
+[작업지시서] HETE 시스템 전자영장청구 기능 고도화 및 확장 구현
+수신: Google AntiGravity Agent
+발신: 프로젝트 리드 엔지니어
+대상 시스템: HETE (CosmWasm 기반 실시간 전자영장 청구 및 자금 동결 시스템)
+목적: 기존 전자영장 기능에 안전장치 및 규제 기술(RegTech) 고도화 개념을 추가하여 비즈니스 로직 확장
+1. 주요 변경 및 추가 요구사항 요약
+기존 구현안(영장 집행 시 즉각적인 전액 동결)에서 나아가, 실제 사법·금융 환경의 요구사항을 충족하기 위해 다음 4가지 핵심 고도화 기능을 추가합니다.
+기능명	핵심 요약	변경 대상 파일
+1. 영장 유효기간 관리	유효기간 만료 시 별도 해제 트랜잭션 없이 자동 동결 해제 (Time-locked)	state.rs, contract.rs, msg.rs
+2. 정밀 부분 동결	계좌 전체 동결이 아닌 영장에 명시된 범죄 혐의 금액만 한도 제한 (Granular Seizure)	state.rs, contract.rs
+3. 다중 기관 승인 검증	법원 VC 검증 외에 [경찰 + 검찰] 다중 서명(VP) 검증 체계 구축 (Multi-Agency)	contract.rs, crypto_helper.py
+4. IBC 교차 사슬 신호 모킹	타 체인 자금 도피 방지를 위한 IBC 이벤트 전파 모킹 (Cross-chain)	contract.rs, run_warrant_simulation.sh
+2. 상세 구현 사양 (Technical Specification)
+2.1. 영장 구조체 정의 및 정밀 제어 (Smart Contract 레이어)
+[MODIFY] state.rs
+•	기존 FROZEN_WALLETS: Map<&str, bool> 구조를 영장의 유효성 및 한도를 상세히 추적할 수 있는 구조체(Struct) 형태로 변경합니다.
+Rust
+pub struct WarrantInfo {
+    pub is_frozen: bool,
+    pub frozen_amount: Uint128,    // 정밀 부분 동결 한도 금액
+    pub expiration_time: u64,      // 영장 유효기간 (Block Timestamp 기준 나노초 또는 초 단위)
+}
+pub const WARRANT_REGISTRY: Map<&str, WarrantInfo> = Map::new("warrant_registry");
+[MODIFY] msg.rs
+•	ExecuteMsg::ExecuteWarrant 파라미터에 frozen_amount: Uint128, expiration_time: u64, prosecutor_vp_signature: Binary를 추가합니다.
+[MODIFY] contract.rs
+•	exec_execute_warrant 로직 고도화:
+1.	법원(Court)이 발급한 WARRANT 타입의 VC 유효성을 검증합니다.
+2.	수사기관(Police)의 VP 서명뿐만 아니라, 추가된 검찰(Prosecutor)의 VP 서명까지 모두 수학적으로 검증하는 다중 승인(Multi-Agency) 로직을 구현합니다.
+3.	모든 검증을 통과하면 WARRANT_REGISTRY에 대상 DID별 WarrantInfo 데이터를 업데이트합니다.
+•	exec_present_and_transfer 검증 로직 고도화:
+1.	사용자가 송금을 시도할 때 WARRANT_REGISTRY에서 해당 유저의 DID를 조회합니다.
+2.	만약 현재 블록 타임이 영장의 유효기간을 초과했다면(env.block.time.seconds() > expiration_time), 자동으로 동결이 해제된 것으로 간주하고 송금을 승인합니다.
+3.	유효기간 이내라면, [현재 계좌 잔액 - 송금 요청 금액]이 영장에 기재된 frozen_amount보다 낮아지는지 검사합니다. 만약 지갑에 남은 금액이 동결 한도선 미만으로 떨어지려고 하면 DomainError("Transfer rejected: Frozen limit violated") 에러를 반환하며 거래를 차단합니다.
+2.2. 인터체인 자금 동결 신호 전파 (Cross-chain Mocking)
+[MODIFY] contract.rs
+•	영장이 성공적으로 검증되어 집행되는 시점(exec_execute_warrant 내부 상태 저장 직후)에 타 체인(예: 자금이 도피할 수 있는 외부 DEX 또는 연결된 앱체인)으로 동결 신호를 전파하는 크로스체인 이벤트를 시뮬레이션합니다.
+•	CosmWasm의 Response::new().add_event()를 사용하여 아래 양식의 Custom Event를 가동(Emit)시키도록 코드를 추가하십시오.
+o	Event Type: wasm-warrant-interchain-signal
+o	Attributes: target_did, frozen_amount, action: "propagate_freeze", source_chain: "hete_chain"
+2.3. 암호화 도구 및 시뮬레이션 확장 (Testnet/Script 레이어)
+[MODIFY] crypto_helper.py
+•	검찰(Prosecutor) 역할에 해당하는 별도의 Ed25519 키쌍 생성 기능을 추가합니다.
+•	영장 집행 요청 페이로드 생성 시, 경찰 서명 데이터와 검찰 서명 데이터가 프로토콜 규격에 맞게 복합 배열 또는 JSON 구조로 contract에 전달될 수 있도록 서명 헬퍼 함수를 고도화합니다.
+[MODIFY] run_warrant_simulation.sh
+변경된 규격과 비즈니스 시나리오를 자동 검증할 수 있도록 테스트 케이스 시퀀스를 확장하십시오.
+1.	테스트 시나리오 1 (정밀 동결 및 한도 침범 검증):
+o	대상 유저(user1)의 초기 잔액이 50,000인 상태에서, 10,000 만큼만 묶어두는 부분 동결 영장을 집행합니다.
+o	유저가 5,000 송금을 시도합니다 $\rightarrow$ 송금 성공을 확인합니다 (남은 잔액 45,000이 동결 한도인 10,000 이상이므로 허용).
+o	유저가 추가로 40,000 송금을 시도합니다 $\rightarrow$ 송금 거부(REJECTED)를 확인합니다 (남은 잔액이 5,000이 되어 동결 한도선인 10,000을 침범하기 때문).
+2.	테스트 시나리오 2 (유효기간 만료 및 자동 해제 검증):
+o	만료 시간이 매우 짧게 설정된 영장을 집행하거나, 스크립트 상에서 블록 타임을 만료 이후로 가정한 뒤 유저가 송금을 시도하게 합니다.
+o	별도의 동결 해제 명령 없이도 자동으로 송금이 다시 정상 성공(SUCCESS)하는지 검증합니다.
+3.	테스트 시나리오 3 (교차 사슬 전파 로그 확인):
+o	트랜잭션 실행 로그에 wasm-warrant-interchain-signal 이벤트와 타겟 DID가 정상적으로 마킹되어 출력되는지 grep 구문을 통해 자동 확인합니다.
+3. 에이전트 수행 가이드라인 (Guideline for AntiGravity)
+[!IMPORTANT]
+•	모든 코드는 CosmWasm 사양 및 Rust의 컴파일 규칙을 엄격히 준수해야 합니다.
+•	암호화 로직 변경 시, crypto_helper.py가 생성하는 바이너리 서명 규격과 contract.rs가 검증하는 데이터 파싱 규격(인코딩 방식 등)이 완벽하게 일치하는지 재차 검증하십시오.
+•	구현이 완료되면 최종 산출물 일체를 기존 규격에 따라 docs_stable_coin/work_reports/110_electronic_warrant_did_integration 폴더 내에 일괄 백업 및 저장하십시오.
+요구사항 분석을 완료했다면 코드 작성을 시작해 주세요. 변경된 파일별 소스코드와 테스트 실행 스크립트 수정본을 순차적으로 출력하십시오.
+

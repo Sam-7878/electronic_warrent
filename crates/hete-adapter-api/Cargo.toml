@@ -1,0 +1,12 @@
+[package]
+name = "hete-adapter-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hete-identity = { path = "../hete-identity" }
+hete-policy = { path = "../hete-policy" }
+serde.workspace = true
+thiserror.workspace = true
+

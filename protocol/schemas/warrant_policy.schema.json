@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hete.example/schemas/warrant_policy.schema.json",
+  "title": "Electronic Asset-Freezing Warrant Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["common", "case_reference", "warrant_reference", "jurisdiction", "asset_scope", "freeze_rule", "execution_rule", "requesting_authority", "judicial_issuer", "review_rule"],
+  "properties": {
+    "common": {"$ref": "machine_policy.schema.json"},
+    "case_reference": {"type": "string", "minLength": 1},
+    "warrant_reference": {"type": "string", "minLength": 1},
+    "jurisdiction": {"type": "string", "minLength": 1},
+    "asset_scope": {"type": "object", "additionalProperties": false, "required": ["asset_id", "maximum_amount", "inflow_rule"]},
+    "freeze_rule": {"type": "object", "additionalProperties": false, "required": ["amount", "effective_from", "expires_at"]},
+    "execution_rule": {"type": "object", "additionalProperties": false},
+    "requesting_authority": {"type": "object"},
+    "supervisory_authority": {"type": ["object", "null"]},
+    "judicial_issuer": {"type": "object"},
+    "review_rule": {"type": "object"},
+    "appeal_or_hold_rule": {"type": ["object", "null"]}
+  }
+}

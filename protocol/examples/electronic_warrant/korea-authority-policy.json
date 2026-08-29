@@ -1,0 +1,12 @@
+{
+  "requirements": [
+    {"role": "requester", "minimum_signatures": 1, "sequence": 1},
+    {"role": "legal_reviewer", "minimum_signatures": 1, "sequence": 2},
+    {"role": "judicial_issuer", "minimum_signatures": 1, "sequence": 3}
+  ],
+  "threshold": 3,
+  "mutually_exclusive_roles": [
+    ["requester", "legal_reviewer", "judicial_issuer"]
+  ],
+  "sequential": true
+}

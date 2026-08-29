@@ -1,0 +1,13 @@
+[package]
+name = "domain-agent-delegation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hete-adapter-api = { path = "../hete-adapter-api" }
+hete-identity = { path = "../hete-identity" }
+hete-policy = { path = "../hete-policy" }
+poa-core = { path = "../poa-core" }
+serde.workspace = true
+thiserror.workspace = true

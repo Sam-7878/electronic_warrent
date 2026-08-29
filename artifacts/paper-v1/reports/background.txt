@@ -1,0 +1,398 @@
+현재 추가 개발은 SCI 논문을 본격적으로 다시 작성하기에 충분한 수준에 도달했습니다. 특히 이전 초안에서 약했던 시스템 아키텍처, 기술적 범위 설정, 상태 불변식, 위협 모델, 실험 프레임워크는 크게 개선되었습니다.
+다만 현재 산출물만으로 SCI 논문의 최종 실험 근거까지 모두 완성되었다고 보기는 어렵습니다.
+정확히 구분하면 다음과 같습니다.
+시스템 설계와 구현 개발은 대체로 충분하다.
+논문 작성에 필요한 구조적·기능적 증거도 상당 부분 확보되었다.
+그러나 최종 투고용 정량 실험과 정형 검증은 아직 완료되지 않았다.
+따라서 새로운 기능을 계속 광범위하게 개발하기보다는, 이제부터는 검증 실행, 데이터 수집, 통계 분석 및 논문 주장 고정 단계로 전환하는 것이 적절합니다.
+________________________________________
+1. 이전 문제점은 어느 정도 해결되었는가
+1.1 시스템 아키텍처 명확성: 크게 개선됨
+전자영장 기능은 기존 hete 및 Voting Domain과의 소스·Cargo 의존성 없이 독립적인 HETE reference domain으로 구현되었습니다. 구현 보고서도 이를 완성된 법률서비스가 아니라 HETE-aware 자산을 위한 제한적이고 감사 가능한 정책 집행 reference implementation으로 명확히 한정합니다. 
+아키텍처 역시 다음 계층으로 분리되었습니다.
+	hete-identity 
+	hete-policy 
+	hete-credential 
+	hete-adapter-api 
+	domain-electronic-warrant 
+	adapter-simulated-asset 
+	hete-warrant-verifier 
+특히 구체적인 자산 구현이 hete-adapter-api 뒤에 위치하고, 전자영장 도메인은 poa-core, 정책, credential 및 추상 Adapter API에만 의존하도록 구성되었습니다. 이는 domain-neutral core와 domain-specific profile을 분리하려는 논문의 주장과 잘 일치합니다. 
+기존 점수를 다시 추정하면:
+평가 항목	기존 초안	현재
+아키텍처 명확성	4/10	8.5/10
+도메인 독립성	3/10	9/10
+적용 범위 명확성	3/10	8.5/10
+특히 다음 비보장 사항을 명시한 것은 매우 좋습니다.
+	임의 퍼블릭 블록체인 자산의 보편적 동결이 아님 
+	consensus/mempool ordering을 통제하지 않음 
+	완성된 법률서비스가 아님 
+	HETE-aware regulated assets에 한정됨 
+이러한 한정은 논문을 약하게 만드는 것이 아니라, 심사자가 신뢰할 수 있도록 만드는 요소입니다.
+________________________________________
+1.2 기술적 정확성: 논문 작성 가능한 수준으로 개선됨
+이전 초안의 가장 큰 문제였던 “스마트 컨트랙트가 멤풀 정렬 이전에 거래를 차단한다”는 식의 과도한 주장이 제거되었습니다.
+현재 구조는 public commitment를 다음 수준으로 제한합니다.
+	policy digest와 nonce를 결합 
+	replay와 사후 정책변조를 방지 
+	타깃 은닉이나 즉시 잠금은 보장하지 않음 
+	실제 집행은 reveal 이후 policy-aware Adapter에서 수행 
+또한 ConfidentialIngress는 실제 암호화 멤풀 구현이라고 주장하지 않고 simulation-only 경계로 명확히 표시되었습니다. 
+금액 동결도 전체 거래 이력을 반복 합산하는 방식이 아니라, authoritative simulated ledger에서 잔액과 영장별 reservation을 관리하는 형태로 변경되었습니다. Adapter의 prepare는 부작용이 없어야 하고, commit은 버전이 일치할 때 전체 후보 상태를 반영하거나 아무 변화도 남기지 않는 계약으로 정의되었습니다. 
+기술적으로 잘 보강된 부분은 다음과 같습니다.
+	policy digest의 canonical binding 
+	unknown critical field fail-closed 
+	privilege expansion 방지 
+	nonce 및 domain binding 
+	credential expiry와 key revocation 
+	threshold, sequential, mutual-exclusion authority policy 
+	optimistic version conflict 
+	stale·duplicate command 거부 
+	commit failure 시 부분 상태 미발행 
+	amount conservation 
+	terminal-state resurrection 금지 
+	RiskEvidence가 Adapter prepare 이전에 Quarantine 수행 
+83개 workspace test와 10,000개의 amount-conservation property case가 통과했고, architecture invariant 15개와 기능 fixture 31개도 통과했습니다. 
+현재 기술적 정확성은 대략 8/10 정도로 평가할 수 있습니다.
+________________________________________
+2. 보안 모델은 충분한가
+2.1 Threat Model은 논문에 사용할 수 있는 수준입니다
+현재 산출물은 다음 보호 대상을 구분합니다.
+	기관 키 
+	DID 및 trust registry 
+	policy와 credential 
+	target mapping 
+	Adapter 상태 
+	감사증거 
+	revocation 상태 
+	실행 receipt 
+	평가 원자료 
+공격자 능력도 상당히 폭넓게 정의되어 있습니다.
+	credential 위조·변조 
+	단일 기관 키 탈취 
+	same-domain 및 cross-domain replay 
+	stale identity state 
+	revoked credential 
+	target digest enumeration 
+	policy downgrade 
+	Adapter capability 허위 선언 
+	prepare/commit race 
+	duplicate execution 
+	expiry boundary 
+	audit suppression 
+	악성 AI Agent draft 
+	public ordering manipulation 
+	OS 자원 escape probe 
+더 중요한 점은 무엇을 보호하지 못하는지도 명시했다는 것입니다.
+	악성 consensus majority 
+	실체적 법률 판단 
+	자연어 법률문서 완전 해석 
+	external resolver availability 
+	cross-chain recovery 
+	비통합 자산 
+	공개 commit의 target secrecy 
+	consensus-level front-running prevention 
+이 정도면 논문의 Threat Model과 Security Assumptions 절을 작성하기에 충분합니다.
+2.2 단일 키 탈취 방어 주장은 조건부로만 써야 합니다
+현재 threat model은 “한 개 키가 탈취되어도 threshold와 mutual-exclusion 정책에 독립 승인이 남아 있을 경우에만 견딘다”고 정의합니다. 
+따라서 논문에서는 다음처럼 써야 합니다.
+HETE tolerates compromise of one authority credential only when the configured authorization policy still requires at least one independent, uncompromised approval.
+다음처럼 일반화해서는 안 됩니다.
+HETE is secure against authority key compromise.
+이러한 조건부 표현만 유지하면 보안 모델은 충분히 논문 수준입니다.
+________________________________________
+3. 정형 분석은 아직 최종 완료가 아닙니다
+이 부분이 가장 명확하게 남아 있는 결손입니다.
+현재 다음은 갖추어져 있습니다.
+	TLA+ 모델 
+	TLC configuration 
+	SAFE-001부터 SAFE-010까지의 property mapping 
+	LIVE-001부터 LIVE-003까지의 조건부 liveness 정의 
+	Rust test와 정형 속성 간 traceability checker 
+	static model checker 통과 
+그러나 산출물 스스로 명시하듯이, 현재 check_formal_model.py는 정형 속성의 존재와 코드 증거 연결을 검사할 뿐 TLC 실행 결과가 아닙니다. 
+구현 보고서에도 Java/TLC가 설치되지 않아 bounded model-check 성공을 주장하지 않는다고 정확히 기록되어 있습니다. 
+따라서 현재 가능한 주장은:
+We specify the warrant lifecycle and safety properties in TLA+ and provide traceability between formal properties and executable tests.
+현재 불가능한 주장은:
+All safety and liveness properties were exhaustively verified using TLC.
+필수로 추가할 작업
+TLC를 실제 실행하고 다음을 남겨야 합니다.
+	TLC 버전 
+	Java 버전 
+	model configuration 
+	explored states 수 
+	distinct states 수 
+	state depth 
+	실행시간 
+	deadlock 검사 결과 
+	invariant violation 여부 
+	liveness 검사 여부 
+	worker 수 
+	TLC stdout 원문 
+	실행 command 
+	결과 파일 hash 
+TLC에서 반례가 나오면 모델 또는 Rust 구현을 수정하고, 수정 전후 trace를 보존해야 합니다.
+이 작업은 새로운 개발이라기보다 이미 완성된 정형 artifact의 검증 실행에 가깝습니다.
+현재 보안·정형 분석 평가:
+영역	현재 점수
+Threat model	8.5/10
+Safety property 정의	8.5/10
+Executable/property tests	8/10
+실제 model checking	4/10
+종합	7/10
+TLC 실행 후에는 8.5점 이상으로 올라갈 수 있습니다.
+________________________________________
+4. 실험 설계는 좋지만, 실험 데이터는 아직 부족합니다
+4.1 실험 프레임워크 자체는 SCI 수준에 근접합니다
+현재 평가 설계에는 B0–B6 baseline이 있습니다.
+	B0: single administrator 
+	B1: N-of-M multisig 
+	B2: DID/VC only 
+	B3: HETE single authority 
+	B4: HETE multi-authority without risk 
+	B5: HETE full model with RiskEvidence and audit 
+	B6: observer/dry-run 
+기능 fixture 31개, 공격 시나리오 12개, privacy audit, scale benchmark, concurrency benchmark, Adapter overhead runner가 준비되어 있습니다. 
+실험설계 문서도 본 실험의 목표를 다음과 같이 올바르게 정의합니다.
+	warm-up 후 1,000 measured iterations 
+	주요 조건 30 independent runs 
+	median, P95, P99, standard deviation 
+	95% confidence interval 
+	immutable raw CSV/JSON 
+	source commit, build profile, host 및 backend manifest 
+이 설계 자체는 매우 좋습니다.
+4.2 하지만 현재 실행된 것은 smoke test입니다
+실제 완료 결과는 다음 수준입니다.
+	B0–B6 각각 20회 microbenchmark 
+	12개 공격 시나리오 
+	privacy exposure count 0 
+	smoke evaluation pass 
+이는 개발 검증에는 충분하지만 SCI 논문 성능 평가에는 충분하지 않습니다.
+산출물 자체도 이를 명확히 인정합니다.
+full 1000-iteration/30-independent-run evaluation은 smoke run으로 대체될 수 없으며 publication host에서 실행해야 한다. 
+따라서 현재 결과를 논문에 다음처럼 사용할 수 있습니다.
+	기능 구현이 정상적으로 연결되었다. 
+	baseline runner가 동작한다. 
+	평가 파이프라인이 재현 가능하다. 
+	공격과 non-guarantee가 숨겨지지 않는다. 
+	privacy scanner가 fixture 평문을 발견하지 않았다. 
+하지만 아직 다음 주장은 할 수 없습니다.
+	HETE가 baseline보다 유의하게 빠르거나 효율적이다. 
+	policy 수 증가에 대해 scalable하다. 
+	concurrency 증가에도 안정적인 throughput을 유지한다. 
+	B5 overhead가 실용 가능한 범위다. 
+	공격 방어율이 통계적으로 검증되었다. 
+	production readiness가 입증되었다. 
+________________________________________
+5. 현재 microbenchmark만으로 충분한가
+아닙니다.
+현재 timing은 문서에 명시된 대로 policy-processing microbenchmark입니다. 네트워크, 외부 ledger, block inclusion, execution finality를 포함하지 않습니다. 
+논문을 어디에 투고하느냐에 따라 요구 수준이 달라집니다.
+시스템·소프트웨어 아키텍처 중심 논문
+다음 조건이면 simulated Adapter 기반 평가도 가능할 수 있습니다.
+	연구의 주장을 policy framework와 invariant enforcement로 제한 
+	실제 블록체인 성능 주장을 하지 않음 
+	microbenchmark라고 명확히 표시 
+	external Adapter를 future work로 둠 
+	formal analysis와 baseline 비교를 강화 
+블록체인·핀테크·보안 응용 논문
+최소 하나의 실제 Adapter가 필요할 가능성이 큽니다.
+예:
+	CosmWasm policy-aware token 
+	local permissioned ledger 
+	Ethereum-compatible regulated token 
+	embedded transactional DB 기반 외부 서비스 Adapter 
+이 경우 다음 시간을 분리해야 합니다.
+T_"total" =T_"policy" +T_"credential" +T_"adapter" +T_"network" +T_"ledger" +T_"finality" 
+
+현재 논문 제목은 특정 블록체인을 제거하고 framework를 중심으로 하므로, 실제 CosmWasm Adapter가 무조건 필수라고 보기는 어렵습니다. 그러나 최소한 논문의 설득력을 높이기 위해 다음 중 하나는 권장합니다.
+	lightweight policy-aware token Adapter 하나 추가 
+	기존 CosmWasm prototype을 별도 external validation case로 재구성 
+	external Adapter가 없다면 논문을 “reference architecture and controlled feasibility evaluation”로 엄격히 한정 
+________________________________________
+6. Privacy evidence는 어느 정도 충분한가
+Privacy-oriented design을 주장하기에는 상당히 개선되었습니다.
+	salted pseudonymous target reference 
+	raw credential 비저장 
+	plaintext subject identifier 비저장 
+	최소 감사 증거 
+	출력 surface scanner 
+	linkability와 off-chain mapping을 명시적 한계로 처리 
+Claim–Evidence Matrix도 “privacy-preserving” 또는 “anonymous”가 아니라 privacy-oriented design이라고 제한하고 있습니다. 
+privacy exposure count 0은 다음 정도를 의미합니다.
+정의된 fixture와 검사 대상 산출물에서 금지된 평문 식별자가 검출되지 않았다.
+이는 다음을 의미하지 않습니다.
+	재식별 불가능 
+	익명화 완료 
+	GDPR 준수 
+	side-channel 없음 
+	실제 네트워크 traffic에서 leakage 없음 
+논문에서 이 범위를 정확히 유지하면 현재 자료는 충분히 사용할 수 있습니다.
+다만 full evaluation에서는 다음 결과가 실제 JSON 또는 표로 필요합니다.
+	검사 대상 파일 수 
+	검사한 field와 artifact 종류 
+	forbidden token 수 
+	plaintext hit 수 
+	stable digest linkability 
+	같은 대상의 cross-run correlation 
+	salt rotation 전후 linkability 
+	audit data size 
+________________________________________
+7. 재현성 자료는 좋은가
+WP0 baseline은 source commit, repository 상태, OS, WSL2, Rust, Python 및 기존 crate 구성을 기록했습니다. 환경 오류 0x8007274c도 삭제하지 않고 보존했습니다. 
+평가 manifest에도 다음이 포함됩니다.
+	실행 command 
+	host OS 
+	Python 환경 
+	Rust 버전 
+	source commit 
+	build profile 
+	mode 
+	status 
+이것은 매우 좋은 출발점입니다.
+다만 현재 manifest의 working_tree가 다음과 같습니다.
+dirty-development-output
+SCI 논문의 최종 재현성 실행은 반드시 다음 조건에서 수행하는 것이 좋습니다.
+	clean Git working tree 
+	release 또는 paper artifact tag 
+	--release build 
+	고정된 dependency lock 
+	평가 전후 source commit 동일 
+	raw result directory clean 
+	결과 manifest에 CPU, memory, core count 추가 
+	background load 통제 또는 기록 
+	가능하면 WSL2 외 native Linux에서도 한 번 검증 
+WSL2 결과를 사용할 수는 있지만, 시스템 성능 논문에서는 native Linux 결과가 더 설득력이 있습니다.
+________________________________________
+8. OpenBSD 검증은 필요한가
+이번 전자영장 논문의 핵심이 다음이라면 OpenBSD 신규 검증은 필수적이지 않습니다.
+	machine-verifiable policy 
+	DID/VC multi-authority authorization 
+	amount-bounded enforcement 
+	state invariants 
+	Adapter architecture 
+전자영장 구현은 poa-sandbox를 변경하지 않았고, 기존 OpenBSD evidence는 sandbox layer에만 적용된다고 문서가 정확히 제한합니다. 
+하지만 논문에서 HETE를 High-Assurance Engine이라고 부르면서 OS 격리까지 중요한 contribution으로 포함하려면 OpenBSD native integration run이 필요합니다.
+선택지는 두 가지입니다.
+권장 선택 A
+이번 논문에서는 OS sandbox를 기반 인프라로 간단히 소개하고, 전자영장 논문의 contribution에서는 제외합니다.
+그러면 기존 OpenBSD 결과를 인용하되 전자영장 자체의 검증으로 주장하지 않습니다.
+선택 B
+전자영장 verifier를 OpenBSD 7.9에서 실제 실행하여 다음을 검증합니다.
+	startup enforcement 
+	pledge/unveil 이후 정상 정책 실행 
+	금지된 filesystem 접근 
+	금지된 network/resource 접근 
+	overhead 
+	policy verifier와 sandbox 통합 
+논문 분량과 연구 초점을 고려하면 선택 A가 더 합리적입니다.
+________________________________________
+9. 현재 산출물의 SCI 근거자료 적합성 평가
+근거자료	현재 적합성	판단
+Architecture report	매우 높음	논문 시스템 설계 절에 바로 활용 가능
+Implementation report	높음	구현 및 재현성 절의 근거로 활용 가능
+Threat model	높음	보안 모델 절에 활용 가능
+Formal property specification	높음	속성 정의에는 충분, TLC 결과 필요
+Rust unit/property tests	높음	기능·불변식 근거로 충분
+31 functional fixtures	높음	기능 정확성 평가에 충분
+Claim–Evidence Matrix	매우 높음	논문 주장 통제에 매우 유용
+Smoke benchmark	낮음–중간	개발 확인용, 최종 결과로는 부족
+Full scalability evidence	미완료	1,000×30 실행 필요
+Concurrency evidence	미완료 또는 미제시	full run 필요
+Formal model-check output	미완료	TLC 실행 필요
+실제 외부 Adapter evidence	없음	목표 저널에 따라 권장
+End-to-end latency	없음	주장하지 않거나 별도 실험 필요
+Privacy audit	중간–높음	full-run 세부 지표 필요
+Attack evaluation	중간	반복·통계와 명확한 attacker configuration 필요
+________________________________________
+10. SCI 논문 작성 전 반드시 해야 할 최소 작업
+새로운 대규모 기능 개발은 필요하지 않습니다. 다음 네 가지 검증 작업이 핵심입니다.
+필수 1. Publication-grade full benchmark
+다음 실험을 clean commit과 release build에서 수행합니다.
+	B0–B6 
+	warm-up 
+	조건별 최소 1,000회 
+	주요 조건 30 independent runs 
+	policy/credential/authority/active warrant 규모 변화 
+	concurrency benchmark 
+	Adapter overhead 
+	median/P95/P99/std/95% CI 
+필수 2. TLC 실행
+	SAFE-001~010 
+	deadlock 
+	bounded liveness 
+	탐색 상태 수와 depth 
+	실행 로그 보존 
+필수 3. Attack simulation 반복 및 통계
+	공격별 최소 반복 수 명시 
+	ASR/BRR 
+	attacker knowledge 
+	attacker capability 
+	expected non-guarantee 별도 표시 
+	한 개 key compromise와 threshold별 결과 
+	replay, race, stale snapshot, duplicate execution 
+필수 4. 최종 artifact freeze
+	clean repository 
+	paper tag 
+	source archive 
+	Cargo.lock 
+	environment manifest 
+	raw data hash 
+	processing script 
+	figure generation 
+	claim–evidence matrix 최종 갱신 
+________________________________________
+11. 있으면 논문이 더 강해지는 작업
+필수는 아니지만 다음 두 가지가 있으면 심사 대응력이 크게 좋아집니다.
+하나의 외부 Adapter 실증
+실제 CosmWasm 전체 시스템을 다시 개발할 필요는 없습니다. 간단한 policy-aware token/vault Adapter로 다음만 보여도 충분합니다.
+	HETE policy verification 
+	amount reservation 
+	transfer rejection 
+	expiry/release 
+	audit receipt 
+	network 또는 ledger overhead 
+이를 “external validity case study”로 사용하면 simulated Adapter만 사용했다는 비판을 완화할 수 있습니다.
+Domain generality demonstration
+HETE가 모든 AI Agent 서비스의 intra-structure라는 장기 비전을 주장하려면, 아주 작은 두 번째 domain fixture가 도움이 됩니다.
+예:
+	high-value payment approval 
+	medical-record access release 
+	AI Agent tool delegation 
+	drone command authorization 
+완전한 구현은 필요 없고, 동일한 MachinePolicyObject와 Adapter API가 수정 없이 사용된다는 것을 보여주는 정도면 됩니다.
+단, 이번 논문의 초점이 흐려질 수 있으므로 supplementary experiment로 두는 것이 좋습니다.
+________________________________________
+12. 최종 판정
+추가 개발 충분성
+예, 핵심 추가 개발은 충분합니다.
+이제 아키텍처를 다시 크게 바꾸거나 기능을 무한히 늘릴 단계는 아닙니다. 현재 구현은 다음을 실질적으로 확보했습니다.
+	Voting Domain 독립 
+	domain-neutral HETE policy core 
+	DID/credential 기반 다기관 승인 
+	금액·기간·취소 제한 
+	RiskEvidence 및 Quarantine 
+	Adapter 추상화 
+	상태 및 금액 불변식 
+	감사증거 
+	threat model 
+	formal specification 
+	baseline과 실험 자동화 
+논문 근거자료 충분성
+질적·구조적 근거는 충분하지만, 최종 정량 근거는 아직 불충분합니다.
+현재 상태를 비율로 표현하면:
+구분	완성도
+시스템 설계	90%
+구현	85–90%
+기능 검증	85%
+보안 모델	85%
+정형 명세	85%
+정형 실행 검증	40%
+최종 성능 실험	35–45%
+논문 근거자료 전체	70–75%
+따라서 지금은 논문 revision을 시작해도 됩니다. Architecture, Design, Threat Model, Security Properties, Implementation, Limitations 절은 현재 자료로 작성할 수 있습니다.
+다만 Results 절의 최종 수치와 Abstract의 정량 결과는 full benchmark와 TLC 검증이 끝난 후 확정해야 합니다.
+가장 정확한 판단은 다음 한 문장으로 정리할 수 있습니다.
+HETE 전자영장 프레임워크의 추가 개발은 SCI 논문을 작성하기에 충분하지만, SCI 논문을 제출하기에 충분한 최종 evidence package가 되려면 publication-grade full benchmark와 실제 TLC model-check 결과가 추가되어야 합니다.
+

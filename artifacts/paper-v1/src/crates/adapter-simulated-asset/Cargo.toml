@@ -1,0 +1,15 @@
+[package]
+name = "adapter-simulated-asset"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hete-adapter-api = { path = "../hete-adapter-api" }
+hete-identity = { path = "../hete-identity" }
+hete-policy = { path = "../hete-policy" }
+hex.workspace = true
+poa-protocol = { path = "../poa-protocol" }
+serde.workspace = true
+sha2.workspace = true
+

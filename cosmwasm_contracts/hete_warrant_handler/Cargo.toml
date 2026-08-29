@@ -1,0 +1,26 @@
+[package]
+name = "hete-warrant-handler"
+version = "0.1.0"
+edition = "2021"
+description = "HETE Service Layer: 전자영장 청구 및 자동 이첩 정산 오케스트레이터 - 영장 승인/기각 상태 전이, 복식 부기 몰수 정산"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+library = []
+
+[dependencies]
+cosmwasm-std = { workspace = true }
+cosmwasm-schema = { workspace = true }
+cw-storage-plus = { workspace = true }
+cw2 = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+voting-common = { workspace = true }
+
+[dev-dependencies]
+cw-multi-test = { workspace = true }

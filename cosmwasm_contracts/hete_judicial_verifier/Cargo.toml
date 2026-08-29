@@ -1,0 +1,26 @@
+[package]
+name = "hete-judicial-verifier"
+version = "0.1.0"
+edition = "2021"
+description = "HETE Service Layer: 사법 기관 서명 검증 전용 컨트랙트 - 전자영장 VP 무결성 및 사법 공개키 서명 대조"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+library = []
+
+[dependencies]
+cosmwasm-std = { workspace = true }
+cosmwasm-schema = { workspace = true }
+cw-storage-plus = { workspace = true }
+cw2 = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+voting-common = { workspace = true }
+
+[dev-dependencies]
+cw-multi-test = { workspace = true }

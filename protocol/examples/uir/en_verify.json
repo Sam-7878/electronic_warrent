@@ -1,0 +1,6 @@
+{
+  "command": "Verify company ACME metric revenue in 2025",
+  "language": "en",
+  "expected_intent": "VERIFY",
+  "expected_entity": "ACME"
+}
