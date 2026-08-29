@@ -38,6 +38,7 @@ formal/tools/*.jar
 
 # docs/architecture/
 docs/work_reports/
+docs/legacy_hete_reports/
 results/
 
 testnet_docker/
