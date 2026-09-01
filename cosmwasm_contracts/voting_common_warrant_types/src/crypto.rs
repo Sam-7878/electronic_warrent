@@ -62,7 +62,7 @@ fn query_openbsd_voter_verifier(voter_data: VoterVerificationRequestData) -> Res
     let verifier_url = if let Ok(url) = std::env::var("HETE_VERIFIER_URL") {
         url
     } else if let Ok(content) =
-        std::fs::read_to_string("/mnt/d/_Work/goat_bank/hete/security/open_bsd_connection.json")
+        std::fs::read_to_string("/mnt/d/_Work/goat_bank/hete/local_local_security/open_bsd_connection.json")
     {
         if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
             let ip = config["verifier_ip"].as_str().unwrap_or("192.168.1.103");
@@ -72,7 +72,7 @@ fn query_openbsd_voter_verifier(voter_data: VoterVerificationRequestData) -> Res
             std::env::var("HETE_VERIFIER_URL").unwrap_or_else(|_| "mock".to_string())
         }
     } else if let Ok(content) =
-        std::fs::read_to_string("d:/_Work/goat_bank/hete/security/open_bsd_connection.json")
+        std::fs::read_to_string("d:/_Work/goat_bank/hete/local_local_security/open_bsd_connection.json")
     {
         if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
             let ip = config["verifier_ip"].as_str().unwrap_or("192.168.1.103");
